@@ -1,5 +1,5 @@
-from fastapi import FastAPI
-from pydantic import BaseModel
+from fastapi import FastAPI,HTTPException
+from pydantic import BaseModel,Field
 app=FastAPI()
 #problem 1 creating a book with pydantic models
 class Book(BaseModel):
@@ -30,3 +30,37 @@ def bill(order:Order):
         "total":total
     }
 
+#problem 3 validated user registeration
+class User(BaseModel):
+    username:str=Field(max_length=20,min_length=2)
+    password:str=Field(max_length=12,min_length=8)
+    age:int=Field(ge=18)
+    bio:str|None=Field(default=None)
+@app.post("/registration")
+def register(user:User):
+    return {
+        "message":"registration confirmed",
+        "username":user.username,
+        "age":user.age,
+        "bio":user.bio
+    }
+
+#problem 4 update a course
+courses={
+    1:{"name":"maths"},
+    2:{"name":"physics"},
+    3:{"name":"chemistry"},
+}
+class New_data(BaseModel):
+    name:str=Field(max_length=10)
+    id:int=Field(ge=1,le=3)
+@app.put("/courses/{id}")
+def course(id:int,new:New_data,old_data:bool=False):
+    if id not in courses:
+        raise HTTPException(404)
+    old=courses[id]
+    courses[id]=new.model_dump()
+    if old_data==True:
+        return {"old":old,"updated":courses[id]}
+    return {"updated":courses[id]}
+    
