@@ -63,4 +63,34 @@ def course(id:int,new:New_data,old_data:bool=False):
     if old_data==True:
         return {"old":old,"updated":courses[id]}
     return {"updated":courses[id]}
-    
+
+#problem 5 food delivery order
+class Customer(BaseModel):
+    name:str=Field(min_length=2,max_length=20)
+    address:str=Field(min_length=2,max_length=50)
+    phone:str=Field(min_length=10,max_length=10)
+class food_item(BaseModel):
+    name:str
+    price:float=Field(ge=0)
+    quantity:int=Field(ge=1)
+class Deliver(BaseModel):
+    details:Customer
+    items:list[food_item]
+@app.post("/delivery_details")
+def deliver(deliver:Deliver):
+    total_item=0
+    total_bill=0
+    for i in deliver.items:
+        sub_total=i.quantity*i.price
+        total_bill+=sub_total
+        total_item+=i.quantity
+    return {
+        "details":deliver.details,
+        "total items":total_item,
+        "total bill":total_bill
+    }
+
+
+
+
+
