@@ -1,5 +1,5 @@
 from fastapi import FastAPI,status,HTTPException,Response
-from pydantic import BaseModel
+from pydantic import BaseModel,Field
 app=FastAPI()
 
 
@@ -137,6 +137,7 @@ def prod(product_id:int):
         raise HTTPException(status_code=404,detail="id not found")
     return products_db[product_id]
 
+
 #problem 7 inventory upsert
 inventory_db = {
     1: {"item_id": 1, "name": "USB-C Hub", "stock": 40, "warehouse_code": "WH-NORTH"},
@@ -160,6 +161,7 @@ def invent(item_id:int,response:Response,inventory:InventoryIn):
     "warehouse_code": inventory.warehouse_code,
 }
     return inventory_db[item_id]
+
 
 #problem 8 nested response filtering
 orders_db = {
@@ -210,4 +212,87 @@ def orde(order_id:int):
         raise HTTPException(status_code=404,detail="id not found")
     return orders_db[order_id]
 
+#problem 9 clean user profile 
+profiles_db = {
+    "harshal": {
+        "username": "harshal",
+        "bio": "Backend Developer",
+        "website": None,
+        "twitter": "@harshal_dev",
+        "secret_email": "harshal@private.com",
+    },
+    "diya": {
+        "username": "diya",
+        "bio": None,
+        "website": "https://diya.design",
+        "twitter": None,
+        "secret_email": "diya@private.com",
+    },
+}
+class ProfileOut(BaseModel):
+    username:str
+    bio:str|None=None
+    website:str|None=None
+    twitter:str|None=None
+@app.get("/profiles_db/{username}",response_model=ProfileOut,response_model_exclude_none=True)
+def profiles(username:str):
+    return profiles_db[username]
 
+#problem 10 mini crud capstone-book library api
+library_db = {
+    1: {
+        "id": 1,
+        "title": "Clean Code",
+        "author": "Robert C. Martin",
+        "pages": 464,
+        "notes": None,
+        "internal_cost": 450.0,
+    },
+    2: {
+        "id": 2,
+        "title": "Designing Data-Intensive Applications",
+        "author": "Martin Kleppmann",
+        "pages": 616,
+        "notes": "Must read for backend",
+        "internal_cost": 700.0,
+    },
+}
+class BookBase(BaseModel):
+    id:int
+    title:str
+    author:str
+    pages:int=Field(ge=0)
+    notes:str|None=None
+class BookIn(BookBase):
+    internal_cost:int=Field(ge=0)
+class BookOut(BookBase):
+    pass 
+
+@app.get("/library",response_model=list[BookOut],response_model_exclude_none=True,status_code=status.HTTP_200_OK)
+def librar():
+    return list(library_db.values())
+
+@app.get("/library/{book_id}",response_model=BookOut,response_model_exclude_none=True)
+def book(book_id:int):
+    if book_id not in library_db:
+        raise HTTPException(status_code=404,detail="id  not found")
+    return library_db[book_id]
+
+@app.post("/library",response_model=BookOut,response_model_exclude_none=True,status_code=status.HTTP_201_CREATED)
+def new_book(book:BookIn):
+    library_db[book.id]=book.model_dump()
+    return library_db[book.id]
+
+@app.delete("/library/{book_id}",status_code=status.HTTP_204_NO_CONTENT)
+def delet(book_id:int):
+    if book_id not in library_db:
+        raise HTTPException(status_code=404,detail="id  not found")
+    del library_db[book_id]
+    return
+
+@app.put("/library/{book_id}", response_model=BookOut, response_model_exclude_none=True)
+def update_book(book_id: int, book: BookIn):
+    if book_id not in library_db:
+        raise HTTPException(status_code=404, detail="id not found")
+    library_db[book_id] = book.model_dump()
+    return library_db[book_id]
